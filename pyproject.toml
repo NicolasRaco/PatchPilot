@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "patchpilot"
+version = "0.1.0"
+description = "LLM-based agent that refactors complex Python functions and keeps a change only if the project's tests still pass."
+requires-python = ">=3.11"  # NF-01
+dependencies = [
+    "openai",
+    "radon",
+    "coverage",
+    "pytest",
+    "pyyaml",
+    "jsonschema",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]  # sample_repo/ is a target fixture with its own pytest.ini

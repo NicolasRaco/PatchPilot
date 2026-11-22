@@ -1,4 +1,4 @@
-# Deliberately untested: complex but below 80% branch coverage, so FR-02.2 must not select it (T-02).
+# Deliberately untested: complex (CC 11) but 0% branch coverage, so it must NOT be selected (FR-02.2, T-02).
 def format_report(rows, sort_by=None, limit=None, show_totals=True):
     if not rows:
         return "(no data)"

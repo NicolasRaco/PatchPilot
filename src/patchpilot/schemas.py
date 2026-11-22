@@ -9,9 +9,19 @@ ISSUE_SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "Issue",
     "type": "object",
-    # TODO(human): define "properties" and "required" for one issue record.
-    "properties": {},
-    "required": [],
+    "properties": {
+        # Where the function is
+        "id": {"type": "string", "description": "Stable key: '<file>::<function>'."},
+        "file": {"type": "string", "description": "Path relative to the target repo root."},
+        "function": {"type": "string", "description": "Qualified name, e.g. 'Cart.total' for a method."},
+        "start_line": {"type": "integer", "minimum": 1},
+        "end_line": {"type": "integer", "minimum": 1},
+        # The measurements
+        "cc": {"type": "integer", "minimum": 1, "description": "Cyclomatic complexity (radon)."},
+        "sloc": {"type": "integer", "minimum": 1, "description": "Source lines of code in the function."},
+        "branch_coverage": {"type": "number", "minimum": 0, "maximum": 1, "description": "Fraction 0-1, not a percent."},
+    },
+    "required": ["id", "file", "function", "start_line", "end_line", "cc", "sloc", "branch_coverage"],
     "additionalProperties": False,
 }
 

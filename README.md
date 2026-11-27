@@ -42,6 +42,8 @@ CI runs both on Windows and Ubuntu for every push and pull request.
 | Path | What |
 |---|---|
 | `src/patchpilot/schemas.py` | The two data contracts: issue record and model patch reply. Every stage depends on them, so change only by pull request. |
+| `src/patchpilot/analyzer.py` | Analyzer: runs the target's tests under coverage.py and measures every function with radon. One issue record per function. |
+| `src/patchpilot/prioritizer.py` | Prioritizer: keeps the issues that meet FR-02. Try it: `python -m patchpilot.prioritizer sample_repo` |
 | `sample_repo/` | A small target repo with planted cases for testing the pipeline (see below). It has its own `pytest.ini`. |
 | `tests/` | PatchPilot's tests. Name tests after requirement IDs where possible, e.g. `test_T04_rejects_syntax_error`. |
 
@@ -68,9 +70,11 @@ The IDs come from the team's design document (the project Blueprint). Only the o
 
 | ID | Meaning |
 |---|---|
+| FR-01 | The Analyzer measures complexity and test coverage for every function. |
 | FR-02.1 | Select only functions with CC of at least 11, highest first. |
 | FR-02.2 | Never select a function unless its tests cover at least 80% of its branches. |
 | FR-03 | The LLM Client returns exactly one patch per request, matching the patch schema. |
+| FR-07 | The agent never writes to the original repository. |
 | IF-01 | For each accepted patch, output one diff and one Markdown report. |
 | IF-03 | The Analyzer emits issue records that validate against the issue schema. |
 | IF-04 | The LLM Client requests strict JSON replies and validates each one before use. |

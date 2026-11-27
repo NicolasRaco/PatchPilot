@@ -1,4 +1,3 @@
-
 """Summarise one or more P0 result files (.jsonl) as a single experiment.
 
 Usage:
@@ -8,19 +7,29 @@ Reports two notions of success side by side:
     loose  = tests pass and CC did not increase
     strict = tests pass and CC strictly decreased
 
-Saves the report to tally_report.txt.
+Saves the report next to the first .jsonl file, named after the input file(s):
+    try1.jsonl                  -> try1_report.txt
+    try1.jsonl try1b.jsonl      -> try1_try1b_report.txt
 """
 
 import json
 import sys
 from collections import defaultdict
-from statistics import mean
 from contextlib import redirect_stdout
+from io import StringIO
+from pathlib import Path
+from statistics import mean
 
+
+if len(sys.argv) < 2:
+    print("Usage: python tally.py <results.jsonl> [more.jsonl ...]")
+    sys.exit(1)
+
+paths = [Path(p) for p in sys.argv[1:]]
 
 recs = []
 
-for path in sys.argv[1:]:
+for path in paths:
     with open(path, encoding="utf-8") as f:
         recs += [
             json.loads(line)
@@ -61,6 +70,7 @@ def strict(r):
 def generate_report():
     n = len(by_fn)
 
+    print(f"Input file(s): {', '.join(p.name for p in paths)}")
     print(f"Functions: {n}   Attempts: {len(recs)}")
 
     print(
@@ -170,20 +180,21 @@ def generate_report():
 
 
 if __name__ == "__main__":
-    # Generate report in memory first.
-    from io import StringIO
-
+    # Generate the report in memory first.
     report = StringIO()
     with redirect_stdout(report):
         generate_report()
 
     report_text = report.getvalue()
 
-    # Display report in terminal.
+    # Display it in the terminal.
     print(report_text, end="")
 
-    # Save report to text file beside tally.py.
-    with open("tally_report.txt", "w", encoding="utf-8") as f:
+    # Name the report after the input file(s), and save it beside the first one.
+    report_name = "_".join(p.stem for p in paths) + "_report.txt"
+    report_path = paths[0].parent / report_name
+
+    with open(report_path, "w", encoding="utf-8") as f:
         f.write(report_text)
 
-    print("\nReport saved to tally_report.txt")
+    print(f"\nReport saved to {report_path}")

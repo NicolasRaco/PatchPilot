@@ -1,3 +1,4 @@
+Input file(s): strict_try3.jsonl
 Functions: 6   Attempts: 9
 Schema-valid replies (T-03, target 100%): 9/9
 Loose  (CC not increased): 6/6 (100%)

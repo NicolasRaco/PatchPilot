@@ -11,7 +11,7 @@ ISSUE_SCHEMA = {
     "type": "object",
     "properties": {
         # Where the function is
-        "id": {"type": "string", "description": "Stable key: '<file>::<function>'."},
+        "id": {"type": "string", "description": "Stable key: '<file>::<function>', plus '@<start_line>' if the name repeats in the file."},
         "file": {"type": "string", "description": "Path relative to the target repo root."},
         "function": {"type": "string", "description": "Qualified name, e.g. 'Cart.total' for a method."},
         "start_line": {"type": "integer", "minimum": 1},

@@ -53,6 +53,18 @@ def test_FR07_target_repo_untouched(run):
     assert before == after
 
 
+def test_real_code_shapes_found_on_click(tmp_path):
+    # f: radon alone reported end line 2, cutting the call in half. C.m: was listed twice.
+    (tmp_path / "mod.py").write_text(
+        "def f(a):\n    return max(\n        a,\n        0,\n    )\n\n\n"
+        "class C:\n    def m(self):\n        return 1\n"
+    )
+    (tmp_path / "test_mod.py").write_text("from mod import f\n\ndef test_f():\n    assert f(1) == 1\n")
+    f, m = analyze(tmp_path)  # exactly two records: fails if a method is listed twice
+    assert (f["id"], m["id"]) == ("mod.py::f", "mod.py::C.m")
+    assert (f["end_line"], f["sloc"]) == (5, 5)
+
+
 def test_failing_suite_is_refused(tmp_path):
     (tmp_path / "test_broken.py").write_text("def test_x():\n    assert False\n")
     with pytest.raises(RuntimeError, match="tests do not pass"):

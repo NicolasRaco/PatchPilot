@@ -4,6 +4,7 @@ Output is one issue record per function, matching ISSUE_SCHEMA (IF-03).
 Never writes to the target repo (FR-07): coverage data goes to a temp dir,
 and pytest's cache and Python's bytecode files are switched off.
 """
+import ast
 import json
 import os
 import subprocess
@@ -28,14 +29,18 @@ def analyze(repo) -> list[dict]:
             continue
         source = path.read_text(encoding="utf-8")
         lines = source.splitlines()
+        # radon's endline is where the last statement *starts*; ast knows where the function really ends.
+        ends = {n.lineno: n.end_lineno for n in ast.walk(ast.parse(source))
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
         for block in _functions(cc_visit(source)):
-            body = textwrap.dedent("\n".join(lines[block.lineno - 1 : block.endline]))
+            end = ends[block.lineno]
+            body = textwrap.dedent("\n".join(lines[block.lineno - 1 : end]))
             issues.append({
                 "id": f"{rel}::{block.fullname}",
                 "file": rel,
                 "function": block.fullname,
                 "start_line": block.lineno,
-                "end_line": block.endline,
+                "end_line": end,
                 "cc": block.complexity,
                 "sloc": raw_analyze(body).sloc,
                 "branch_coverage": _fraction(coverage.get((rel, block.fullname))),
@@ -78,12 +83,9 @@ def _fraction(summary) -> float:
 
 
 def _functions(blocks):
+    # radon already lists each class's methods after the class, so only the class itself is dropped.
     # shortcut: nested functions (closures) are skipped; add them if a benchmark repo needs it.
-    for block in blocks:
-        if isinstance(block, Class):
-            yield from block.methods
-        else:
-            yield block
+    return [block for block in blocks if not isinstance(block, Class)]
 
 
 def _skip(rel: str) -> bool:

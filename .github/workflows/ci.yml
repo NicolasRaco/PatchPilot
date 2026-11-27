@@ -21,3 +21,17 @@ jobs:
         run: pytest
       - name: Sample repo baseline must pass
         run: pytest sample_repo
+
+  # NF-05: re-run the Validator tests inside a real network-less container (Linux runners only).
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e .
+      - name: Build validator image
+        run: docker build -t patchpilot-validator:0.1 -f docker/Dockerfile.validator docker
+      - name: Validator tests, local and docker sandboxes
+        run: pytest tests/test_validator.py -v -rs

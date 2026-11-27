@@ -28,6 +28,18 @@ pip install -e .
 
 If `python` points to an older version on Windows, use `py -3.12 -m venv .venv` instead.
 
+## Validator sandbox (P2)
+
+The Validator runs patched code in a Docker container with no network (NF-05). Build the image once:
+
+```
+docker build -t patchpilot-validator:0.1 -f docker/Dockerfile.validator docker
+```
+
+Without the image, the Validator falls back to running pytest as a normal subprocess (`sandbox="local"`) and says so in its result. Both modes block socket connections, but only the container is a real sandbox, so use local mode for development only. On Windows, Docker Desktop must be running.
+
+Rejection reasons: `invalid_patch`, `apply_failed`, `syntax_error` (FR-04.1), `tests_failed` (FR-04.2), `network_blocked` (NF-05), `timeout` (FR-09), `cc_increased` (FR-04.3), `sandbox_error`.
+
 ## Tests
 
 ```
@@ -35,7 +47,7 @@ pytest               # PatchPilot's own tests
 pytest sample_repo   # the planted target repo; its tests must always pass
 ```
 
-CI runs both on Windows and Ubuntu for every push and pull request.
+CI runs both on Windows and Ubuntu for every push and pull request. A second CI job builds the validator image and re-runs `tests/test_validator.py` inside the container; locally those container cases are skipped unless the image is built.
 
 ## Layout
 
@@ -44,7 +56,10 @@ CI runs both on Windows and Ubuntu for every push and pull request.
 | `src/patchpilot/schemas.py` | The two data contracts: issue record and model patch reply. Every stage depends on them, so change only by pull request. |
 | `src/patchpilot/analyzer.py` | Analyzer: runs the target's tests under coverage.py and measures every function with radon. One issue record per function. |
 | `src/patchpilot/prioritizer.py` | Prioritizer: keeps the issues that meet FR-02. Try it: `python -m patchpilot.prioritizer sample_repo` |
+| `src/patchpilot/validator.py` | Validator (F4): applies one patch to an isolated copy, runs the tests with no network, re-measures CC, and returns accept or reject with a reason. Try it: `python -m patchpilot.validator sample_repo shipping.py::shipping_cost patch.json` |
+| `docker/Dockerfile.validator` | The container the Validator runs patched code in (NF-05). |
 | `sample_repo/` | A small target repo with planted cases for testing the pipeline (see below). It has its own `pytest.ini`. |
+| `tests/bad_patches.py` | T-04 bad-patch library: syntax error, broken test, higher CC, infinite loop, network call, plus one correct patch. |
 | `tests/` | PatchPilot's tests. Name tests after requirement IDs where possible, e.g. `test_T04_rejects_syntax_error`. |
 
 ### Planted cases in `sample_repo/`
@@ -74,14 +89,24 @@ The IDs come from the team's design document (the project Blueprint). Only the o
 | FR-02.1 | Select only functions with CC of at least 11, highest first. |
 | FR-02.2 | Never select a function unless its tests cover at least 80% of its branches. |
 | FR-03 | The LLM Client returns exactly one patch per request, matching the patch schema. |
+| FR-04 | The Validator accepts a patch only if FR-04.1 to FR-04.3 all hold. |
+| FR-04.1 | The patched module parses as valid Python. |
+| FR-04.2 | Every test that passed before the patch still passes. |
+| FR-04.3 | The patched function's CC does not exceed its original CC. |
+| FR-05 | On rejection, the error output goes back to the model, up to the retry limit. |
 | FR-07 | The agent never writes to the original repository. |
+| FR-09 | A test run longer than max(3 x baseline, 60 s) is killed and the patch rejected. |
 | IF-01 | For each accepted patch, output one diff and one Markdown report. |
 | IF-03 | The Analyzer emits issue records that validate against the issue schema. |
 | IF-04 | The LLM Client requests strict JSON replies and validates each one before use. |
+| IF-05 | The Validator reads test outcomes from pytest's exit code and JUnit XML report. |
 | NF-01 | Runs on Python 3.11+ on Windows 11 and Ubuntu 24.04. |
 | NF-04 | The API key comes from an environment variable and never appears in logs, reports or prompts. |
+| NF-05 | Patched code runs in a container with no network access. |
 | T-01 | Test: the Analyzer finds every function and its CC matches a hand count. |
 | T-02 | Test: complex but untested functions are not selected, and the order matches CC. |
+| T-04 | Test: every planted bad patch is rejected for the right reason; a correct patch is accepted. |
+| T-11 | Test: every file of the original repo has the same hash before and after a run. |
 
 ## Workflow
 

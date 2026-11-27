@@ -1,5 +1,8 @@
 [
-  {"file": "src/sample/utils.py", "function": "parse_config"},
-  {"file": "src/sample/report.py", "function": "build_summary"},
-  {"file": "src/sample/validators.py", "function": "validate_order"}
+  {"file": "orders.py", "function": "order_total"},
+  {"file": "orders.py", "function": "validate_order"},
+  {"file": "parsing.py", "function": "parse_duration"},
+  {"file": "parsing.py", "function": "normalize_phone"},
+  {"file": "logs.py", "function": "parse_log_line"},
+  {"file": "fees.py", "function": "late_fee"}
 ]

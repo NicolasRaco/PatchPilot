@@ -15,7 +15,7 @@ Setup:
 targets.json example:
   [{"file": "src/sample/utils.py", "function": "parse_config"}]
 
-Run:
+Run (add --require-drop so no-op patches are rejected and retried):
   python p0_spike.py --repo C:\\path\\to\\sample_repo --targets targets.json --schemas C:\\path\\to\\schemas.py
   python p0_spike.py --repo ... --targets ... --schemas ... --model gpt-5.4-mini --max-tries 3
 """
@@ -101,6 +101,8 @@ def main():
     ap.add_argument("--schemas", required=True, help="path to the file that defines PATCH_SCHEMA")
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--max-tries", type=int, default=3)
+    ap.add_argument("--require-drop", action="store_true",
+                    help="only accept a patch if CC strictly decreases (no-op patches trigger a retry)")
     ap.add_argument("--temp0", action="store_true", help="send temperature=0 (if the model allows it)")
     ap.add_argument("--out", default="p0_results.jsonl")
     a = ap.parse_args()
@@ -156,19 +158,25 @@ def main():
                     feedback = f"Error: {e}"
                     rec["error"] = str(e)
 
+                if feedback is None:  # tests passed; give the retry a concrete, actionable hint
+                    feedback = (f"The tests pass, but complexity is {rec['cc_after']} and must be strictly below "
+                                f"{cc_before}. Make a real structural change (lookup table, early returns or guard "
+                                "clauses, or extracting a helper function) while keeping behaviour identical.")
+                improved = rec["cc_after"] is not None and (
+                    rec["cc_after"] < cc_before if a.require_drop else rec["cc_after"] <= cc_before)
+                rec["accepted"] = bool(rec["tests_pass"] and improved)
                 rec["seconds"] = round(time.time() - t0, 1)
                 log.write(json.dumps(rec) + "\n"); log.flush()
                 result["tries"] = attempt
                 print(f"{t['function']} try {attempt}: schema={rec['schema_valid']} parses={rec['parses']} "
                       f"tests={rec['tests_pass']} cc {cc_before}->{rec['cc_after']}")
 
-                if rec["tests_pass"] and rec["cc_after"] is not None and rec["cc_after"] <= cc_before:
+                if rec["accepted"]:
                     result.update(accepted=True, cc_after=rec["cc_after"])
                     break
                 messages += [
                     {"role": "assistant", "content": raw if rec["schema_valid"] else "{}"},
-                    {"role": "user", "content": (feedback or "Complexity did not decrease; reduce it.") +
-                     "\nReturn a corrected JSON patch."},
+                    {"role": "user", "content": feedback + "\nReturn a corrected JSON patch."},
                 ]
             summary.append(result)
 

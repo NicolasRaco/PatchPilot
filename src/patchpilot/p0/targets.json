@@ -1,0 +1,5 @@
+[
+  {"file": "src/sample/utils.py", "function": "parse_config"},
+  {"file": "src/sample/report.py", "function": "build_summary"},
+  {"file": "src/sample/validators.py", "function": "validate_order"}
+]

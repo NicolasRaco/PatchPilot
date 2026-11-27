@@ -1,0 +1,7 @@
+# Sandbox for the Validator (NF-05). Patched code runs here with --network none.
+# Build once from the repo root:
+#   docker build -t patchpilot-validator:0.1 -f docker/Dockerfile.validator docker
+# Target repos with their own dependencies need them added below (needed from M10 on).
+FROM python:3.11-slim
+RUN pip install --no-cache-dir "pytest>=8"
+WORKDIR /work

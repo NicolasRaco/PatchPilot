@@ -65,6 +65,36 @@ def test_real_code_shapes_found_on_click(tmp_path):
     assert (f["end_line"], f["sloc"]) == (5, 5)
 
 
+@pytest.fixture(scope="module")
+def same_names(tmp_path_factory):
+    # Found on all 10 benchmark repos: platform variants and property setters share a name.
+    repo = tmp_path_factory.mktemp("same_names")
+    (repo / "mod.py").write_text(
+        "import sys\n"
+        "if sys.platform != 'nope':\n"
+        "    def f(x):\n        if x:\n            return 1\n        return 2\n"
+        "else:\n"
+        "    def f(x):\n        if x:\n            return 3\n        return 4\n"
+        "\n\nclass C:\n"
+        "    @property\n    def v(self):\n        return 1\n\n"
+        "    @v.setter\n    def v(self, val):\n        if val:\n            pass\n"
+    )
+    (repo / "test_mod.py").write_text(
+        "from mod import f, C\n\ndef test_f():\n    assert f(1) == 1 and f(0) == 2\n    assert C().v == 1\n"
+    )
+    return analyze(repo)
+
+
+def test_FR02_2_same_name_functions_get_their_own_coverage(same_names):
+    coverage = [(i["function"], i["start_line"], i["branch_coverage"]) for i in same_names]
+    assert coverage == [("f", 3, 1.0), ("f", 8, 0.0), ("C.v", 16, 1.0), ("C.v", 20, 0.0)]
+
+
+def test_ids_are_unique(same_names):
+    ids = [i["id"] for i in same_names]
+    assert ids == ["mod.py::f", "mod.py::f@8", "mod.py::C.v", "mod.py::C.v@20"]
+
+
 def test_failing_suite_is_refused(tmp_path):
     (tmp_path / "test_broken.py").write_text("def test_x():\n    assert False\n")
     with pytest.raises(RuntimeError, match="tests do not pass"):

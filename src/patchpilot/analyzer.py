@@ -43,13 +43,19 @@ def analyze(repo) -> list[dict]:
                 "end_line": end,
                 "cc": block.complexity,
                 "sloc": raw_analyze(body).sloc,
-                "branch_coverage": _fraction(coverage.get((rel, block.fullname))),
+                "branch_coverage": _fraction(coverage.get((rel, block.lineno))),
             })
+    # Repeated names (platform variants, setters, overloads) get '@<def line>', as coverage.py does.
+    seen = set()
+    for issue in issues:
+        if issue["id"] in seen:
+            issue["id"] += f"@{issue['start_line']}"
+        seen.add(issue["id"])
     return issues
 
 
 def measure_coverage(repo: Path) -> dict:
-    """Run the repo's own tests under coverage.py; return {(file, function): summary}."""
+    """Run the repo's own tests under coverage.py; return {(file, def line): summary}."""
     env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
     with tempfile.TemporaryDirectory() as tmp:
         data, report = Path(tmp, ".coverage"), Path(tmp, "coverage.json")
@@ -66,8 +72,10 @@ def measure_coverage(repo: Path) -> dict:
             cwd=repo, env=env, check=True,
         )
         files = json.loads(report.read_text())["files"]
+    # Keyed by def line, not name: two functions can share a name (platform variants, property
+    # setters, overloads), and a name lookup could hand an untested one another's coverage (FR-02.2).
     return {
-        (Path(file).as_posix(), name): region["summary"]
+        (Path(file).as_posix(), region["start_line"]): region["summary"]
         for file, info in files.items()
         for name, region in info.get("functions", {}).items()
         if name  # "" is the module-level code, not a function

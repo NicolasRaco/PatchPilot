@@ -1,0 +1,12 @@
+Functions: 6   Attempts: 9
+Schema-valid replies (T-03, target 100%): 9/9
+Loose  (CC not increased): 6/6 (100%)
+Strict (CC reduced):       6/6 (100%)
+  strict within 1 attempt(s): 4/6
+  strict within 2 attempt(s): 5/6
+  strict within 3 attempt(s): 6/6
+Mean CC drop, improved functions only: 17%
+Mean CC drop, all functions (failures = 0): 17% (PF-02 target 30%, min 20%)
+Avg tokens per attempt: 580 in / 345 out (Blueprint est. 4000 / 1000)
+Avg seconds per attempt: 3.0
+Attempts that were not a strict improvement: {'no-op (CC unchanged)': 3}

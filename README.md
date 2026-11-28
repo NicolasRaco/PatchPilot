@@ -1,6 +1,6 @@
 # PatchPilot
 
-ELEC 490/498 Group 31 capstone. A command-line agent that finds complex Python functions with static analysis, asks a GPT model to refactor them, and keeps a change only if the project's own tests still pass. The original repository is never modified; each accepted change is returned as a diff with a short report.
+ELEC 490/498 Group 31 capstone. A command-line agent that finds complex Python functions with static analysis, asks a GPT model to refactor them, and checks each proposed change against the project's own tests. The original repository is never modified: each change that passes is returned as a diff with a short report, and the developer decides whether to apply it.
 
 ## How it works
 
